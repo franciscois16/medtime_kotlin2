@@ -43,136 +43,136 @@ class ThemeManager private constructor(context: Context) {
 
     // Temas disponibles inspirados en paletas frías
     private val availableThemes = listOf(
-        // 🌊 Océano Profundo (estilo navy intenso)
+        // 🌊 Océano Profundo (azules con más contraste)
         AppTheme(
             name = "Océano Profundo",
             primary = "#0F4C75",
-            primaryDark = "#072540",
-            secondary = "#3282B8",
-            background = "#0A2E4C",       // Azul marino oscuro
+            primaryDark = "#062238",
+            secondary = "#3FA9F5",
+            background = "#081C2C",         // Más oscuro que antes
             backgroundSecondary = "#133B5C",
-            surface = "#1B3A57",
+            surface = "#1A3857",
             onPrimary = "#FFFFFF",
             onBackground = "#F5F5F5",
             onSurface = "#E0E0E0",
-            accent = "#00A8E8",
-            warning = "#FF6B6B",
-            success = "#4ECDC4",
+            accent = "#00CFFF",             // Más brillante
+            warning = "#FF5A5A",
+            success = "#36E0C2",
             textPrimary = "#FFFFFF",
-            textSecondary = "#CCCCCC",
-            textHint = "#999999",
-            cardBackground = "#1C3F5C",
-            divider = "#2E5D7B"
+            textSecondary = "#D9D9D9",
+            textHint = "#AAAAAA",
+            cardBackground = "#102F4C",
+            divider = "#357099"
         ),
 
-        // 🌲 Bosque Místico (oscuro, natural)
+        // 🌲 Bosque Místico (verdes más notorios)
         AppTheme(
             name = "Bosque Místico",
             primary = "#2D4A22",
-            primaryDark = "#182C13",
-            secondary = "#4A7C59",
-            background = "#1B2E1A",       // Verde bosque profundo
-            backgroundSecondary = "#233D24",
-            surface = "#2E4B32",
+            primaryDark = "#111F0E",
+            secondary = "#5FA36F",
+            background = "#121E12",         // Más profundo
+            backgroundSecondary = "#1F3221",
+            surface = "#29442D",
             onPrimary = "#FFFFFF",
             onBackground = "#F0F0F0",
             onSurface = "#E0E0E0",
-            accent = "#6A994E",
-            warning = "#F77F00",
-            success = "#52B788",
-            textPrimary = "#FFFFFF",
-            textSecondary = "#CCCCCC",
-            textHint = "#AAAAAA",
-            cardBackground = "#324C3A",
-            divider = "#405A46"
-        ),
-
-        // 🌌 Lavanda Nocturna (morado intenso)
-        AppTheme(
-            name = "Lavanda Nocturna",
-            primary = "#6B5B95",
-            primaryDark = "#3E2F5A",
-            secondary = "#88689A",
-            background = "#2E1B47",       // Violeta oscuro
-            backgroundSecondary = "#3A2556",
-            surface = "#463261",
-            onPrimary = "#FFFFFF",
-            onBackground = "#F5F5F5",
-            onSurface = "#E0E0E0",
-            accent = "#BB86FC",
-            warning = "#E74C3C",
-            success = "#27AE60",
-            textPrimary = "#FFFFFF",
-            textSecondary = "#CCCCCC",
-            textHint = "#AAAAAA",
-            cardBackground = "#3C2A55",
-            divider = "#5A4377"
-        ),
-
-        // 🧊 Glaciar (azul frío oscuro)
-        AppTheme(
-            name = "Glaciar",
-            primary = "#4A90A4",
-            primaryDark = "#285566",
-            secondary = "#5AA3B8",
-            background = "#1B2C34",       // Azul glaciar oscuro
-            backgroundSecondary = "#233C47",
-            surface = "#2E4A56",
-            onPrimary = "#FFFFFF",
-            onBackground = "#F0F0F0",
-            onSurface = "#DDDDDD",
-            accent = "#7DCED0",
-            warning = "#E67E22",
-            success = "#16A085",
-            textPrimary = "#FFFFFF",
-            textSecondary = "#CCCCCC",
-            textHint = "#AAAAAA",
-            cardBackground = "#2F4C58",
-            divider = "#3F6271"
-        ),
-
-        // 🌅 Crepúsculo (marrón y dorado intenso)
-        AppTheme(
-            name = "Crepúsculo",
-            primary = "#8B7355",
-            primaryDark = "#5E4631",
-            secondary = "#A08B7A",
-            background = "#3B1F1A",       // Marrón oscuro
-            backgroundSecondary = "#4E2C25",
-            surface = "#5C3A2E",
-            onPrimary = "#FFFFFF",
-            onBackground = "#FAFAFA",
-            onSurface = "#E0E0E0",
-            accent = "#EBA83A",
-            warning = "#D35400",
-            success = "#229954",
+            accent = "#88CC66",             // Verde más vivo
+            warning = "#FF8C1A",
+            success = "#4CD889",
             textPrimary = "#FFFFFF",
             textSecondary = "#DDDDDD",
             textHint = "#AAAAAA",
-            cardBackground = "#533025",
+            cardBackground = "#243926",
+            divider = "#3D5C41"
+        ),
+
+        // 🌌 Lavanda Nocturna (morado con mayor saturación)
+        AppTheme(
+            name = "Lavanda Nocturna",
+            primary = "#7B68EE",
+            primaryDark = "#2A1C4F",
+            secondary = "#9B72CF",
+            background = "#1C1033",         // Más oscuro
+            backgroundSecondary = "#2E1B47",
+            surface = "#3B275C",
+            onPrimary = "#FFFFFF",
+            onBackground = "#F5F5F5",
+            onSurface = "#E0E0E0",
+            accent = "#CBA6FF",             // Más brillante
+            warning = "#FF3B3B",
+            success = "#2ECC71",
+            textPrimary = "#FFFFFF",
+            textSecondary = "#D6CBE3",
+            textHint = "#AAAAAA",
+            cardBackground = "#2A1C44",
+            divider = "#5C3F77"
+        ),
+
+        // 🧊 Glaciar (azules fríos más claros)
+        AppTheme(
+            name = "Glaciar",
+            primary = "#5AB6D0",
+            primaryDark = "#123844",
+            secondary = "#73C2E1",
+            background = "#0E1D23",         // Más profundo
+            backgroundSecondary = "#1E3A45",
+            surface = "#2D4954",
+            onPrimary = "#FFFFFF",
+            onBackground = "#F0F0F0",
+            onSurface = "#E0E0E0",
+            accent = "#96E8EB",             // Celeste brillante
+            warning = "#FF8C42",
+            success = "#1ABC9C",
+            textPrimary = "#FFFFFF",
+            textSecondary = "#DDEDED",
+            textHint = "#AAAAAA",
+            cardBackground = "#183943",
+            divider = "#3C6271"
+        ),
+
+        // 🌅 Crepúsculo (marrón-dorado más intenso)
+        AppTheme(
+            name = "Crepúsculo",
+            primary = "#B8860B",
+            primaryDark = "#402810",
+            secondary = "#C4976A",
+            background = "#2A120A",         // Mucho más oscuro
+            backgroundSecondary = "#3E1E15",
+            surface = "#543626",
+            onPrimary = "#FFFFFF",
+            onBackground = "#FAFAFA",
+            onSurface = "#E0E0E0",
+            accent = "#FFB84D",             // Dorado vivo
+            warning = "#FF6B00",
+            success = "#2ECC71",
+            textPrimary = "#FFFFFF",
+            textSecondary = "#E8D5C1",
+            textHint = "#AAAAAA",
+            cardBackground = "#361D12",
             divider = "#6E4B3F"
         ),
 
-        // ⚫ Minimalista (gris carbón)
+        // ⚫ Minimalista (gris carbón con contraste marcado)
         AppTheme(
             name = "Minimalista",
             primary = "#2C3E50",
-            primaryDark = "#1B2631",
-            secondary = "#34495E",
-            background = "#121212",       // Gris carbón
-            backgroundSecondary = "#1E1E1E",
+            primaryDark = "#0D1117",
+            secondary = "#4B637A",
+            background = "#0A0A0A",         // Más oscuro que antes
+            backgroundSecondary = "#1C1C1C",
             surface = "#2C2C2C",
             onPrimary = "#FFFFFF",
-            onBackground = "#EAEAEA",
+            onBackground = "#F5F5F5",
             onSurface = "#D0D0D0",
-            accent = "#5D6D7E",
-            warning = "#E74C3C",
-            success = "#27AE60",
+            accent = "#85929E",             // Gris azulado claro
+            warning = "#FF4D4D",
+            success = "#33CC66",
             textPrimary = "#FFFFFF",
-            textSecondary = "#BBBBBB",
+            textSecondary = "#CCCCCC",
             textHint = "#888888",
-            cardBackground = "#242424",
-            divider = "#3C3C3C"
+            cardBackground = "#1A1A1A",
+            divider = "#3D3D3D"
         )
     )
 

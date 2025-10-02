@@ -115,10 +115,35 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f
         ))
 
+        // FAB ahora en posición fija inferior
         val fabContainer = createPremiumFAB()
         mainLayout.addView(fabContainer)
 
         setContentView(mainLayout)
+    }
+
+    private fun mostrarMenuOpciones() {
+        val opciones = arrayOf(
+            "Cambiar tema",
+            "Reprogramar alarmas",
+            if (mostrarSoloActivos) "Mostrar todos" else "Solo activos",
+            "Estadísticas",
+            "Configuración"
+        )
+
+        AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog)
+            .setTitle("Opciones")
+            .setItems(opciones) { _, which ->
+                when (which) {
+                    0 -> mostrarSelectorTemas()
+                    1 -> reprogramarTodasLasAlarmas()
+                    2 -> toggleFiltroActivos()
+                    3 -> mostrarEstadisticas()
+                    4 -> abrirConfiguracion()
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun createPremiumHeader(): LinearLayout {
@@ -127,13 +152,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(32, 80, 32, 40)
             background = createHeaderBackground()
             elevation = 8f
-
         }
-        val btnTema = Button(this).apply {
-            text = "Cambiar Tema"
-            setOnClickListener { mostrarSelectorTemas() }
-        }
-        headerLayout.addView(btnTema)
 
         val titleContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -151,6 +170,16 @@ class MainActivity : AppCompatActivity() {
             setShadowLayer(1f, 0f, 1f, Color.parseColor("#10000000"))
         }
         titleContainer.addView(headerTitle, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+
+        // Botón de configuración (tuerca/settings)
+        val settingsButton = ImageButton(this).apply {
+            setImageResource(android.R.drawable.ic_menu_manage) // Ícono de tuerca/settings
+            setBackgroundColor(Color.TRANSPARENT)
+            setColorFilter(themeManager.getTextPrimaryColor())
+            setPadding(12, 12, 12, 12)
+            setOnClickListener { mostrarMenuOpciones() }
+        }
+        titleContainer.addView(settingsButton)
 
         headerLayout.addView(titleContainer)
 
@@ -261,7 +290,7 @@ class MainActivity : AppCompatActivity() {
     private fun createPremiumFAB(): FrameLayout {
         val fabFrame = FrameLayout(this).apply {
             setBackgroundColor(Color.TRANSPARENT)
-            setPadding(40, 30, 40, 40)
+            setPadding(24, 16, 32, 120) // Más padding inferior para evitar botones de navegación
         }
 
         fab = FloatingActionButton(this).apply {
@@ -269,15 +298,13 @@ class MainActivity : AppCompatActivity() {
             background = createFABBackground()
             imageTintList = android.content.res.ColorStateList.valueOf(Color.WHITE)
             elevation = 16f
-            scaleX = 1.15f
-            scaleY = 1.15f
             setOnClickListener { abrirAgregarMedicamento() }
         }
 
         val fabLayoutParams = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT,
             FrameLayout.LayoutParams.WRAP_CONTENT,
-            Gravity.CENTER_HORIZONTAL
+            Gravity.END or Gravity.BOTTOM
         )
         fabFrame.addView(fab, fabLayoutParams)
 

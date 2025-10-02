@@ -72,8 +72,7 @@ class MedicationAdapter(
             nombreText = TextView(context).apply {
                 textSize = 22f
                 setTextColor(themeManager.getTextPrimaryColor())
-                maxLines = 1
-                ellipsize = android.text.TextUtils.TruncateAt.END
+                setSingleLine(false) // mostrar varias líneas
             }
             headerLayout.addView(nombreText, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
 
@@ -122,8 +121,7 @@ class MedicationAdapter(
             notasText = TextView(context).apply {
                 textSize = 14f
                 setTextColor(themeManager.getTextPrimaryColor())
-                maxLines = 1
-                ellipsize = android.text.TextUtils.TruncateAt.END
+                setSingleLine(false) // mostrar varias líneas
                 setPadding(16, 12, 16, 12)
                 background = android.graphics.drawable.GradientDrawable().apply {
                     setColor(themeManager.getBackgroundColor())
@@ -175,10 +173,8 @@ class MedicationAdapter(
         }
 
         if (medicamento.notas.isNotEmpty()) {
-            val notasCortas = if (medicamento.notas.length > 50) {
-                "${medicamento.notas.take(47)}..."
-            } else medicamento.notas
-            holder.notasText.text = notasCortas
+            // mostrar todo el texto de las notas sin recortarlo
+            holder.notasText.text = medicamento.notas
             holder.notasText.visibility = View.VISIBLE
         } else {
             holder.notasText.visibility = View.GONE
