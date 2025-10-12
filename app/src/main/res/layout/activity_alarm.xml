@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F4C75"
+    tools:context=".AlarmActivity">
+
+    <TextView
+        android:id="@+id/text_view_current_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="64dp"
+        android:textColor="@android:color/white"
+        android:textSize="48sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="12:30" />
+
+    <TextView
+        android:id="@+id/label_hora_de_tomar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="💊 Es hora de tomar tu medicamento"
+        android:textColor="#B0BEC5"
+        android:textSize="18sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/text_view_current_time" />
+
+    <TextView
+        android:id="@+id/text_view_med_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="48dp"
+        android:layout_marginEnd="32dp"
+        android:gravity="center"
+        android:textColor="@android:color/white"
+        android:textSize="34sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/label_hora_de_tomar"
+        tools:text="Paracetamol 500mg" />
+
+    <TextView
+        android:id="@+id/text_view_med_notes"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="32dp"
+        android:gravity="center"
+        android:textColor="#E0E0E0"
+        android:textSize="18sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/text_view_med_name"
+        tools:text="Tomar con agua después de comer." />
+
+    <com.google.android.material.slider.Slider
+        android:id="@+id/slider_tomado"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="64dp"
+        android:valueFrom="0.0"
+        android:valueTo="1.0"
+        android:stepSize="0.1"
+        app:labelBehavior="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:thumbColor="@color/white"
+        app:trackColorActive="#3FA9F5"
+        app:trackColorInactive="#B0BEC5"
+        app:trackHeight="12dp"
+        app:thumbRadius="24dp"
+        app:thumbElevation="8dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=">> Desliza para confirmar >>"
+        android:textColor="#B0BEC5"
+        app:layout_constraintBottom_toBottomOf="@id/slider_tomado"
+        app:layout_constraintEnd_toEndOf="@id/slider_tomado"
+        app:layout_constraintStart_toStartOf="@id/slider_tomado"
+        app:layout_constraintTop_toTopOf="@id/slider_tomado" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

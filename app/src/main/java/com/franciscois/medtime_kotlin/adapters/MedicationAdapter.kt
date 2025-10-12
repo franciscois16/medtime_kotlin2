@@ -4,10 +4,13 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import com.franciscois.medtime_kotlin.models.Medicamento
 import com.franciscois.medtime_kotlin.utils.AlarmHelper
 import com.franciscois.medtime_kotlin.utils.ThemeManager
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MedicationAdapter(
     private var medicamentos: List<Medicamento>,
@@ -72,7 +75,7 @@ class MedicationAdapter(
             nombreText = TextView(context).apply {
                 textSize = 22f
                 setTextColor(themeManager.getTextPrimaryColor())
-                setSingleLine(false) // mostrar varias líneas
+                setSingleLine(false)
             }
             headerLayout.addView(nombreText, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
 
@@ -121,7 +124,7 @@ class MedicationAdapter(
             notasText = TextView(context).apply {
                 textSize = 14f
                 setTextColor(themeManager.getTextPrimaryColor())
-                setSingleLine(false) // mostrar varias líneas
+                setSingleLine(false)
                 setPadding(16, 12, 16, 12)
                 background = android.graphics.drawable.GradientDrawable().apply {
                     setColor(themeManager.getBackgroundColor())
@@ -160,7 +163,14 @@ class MedicationAdapter(
         val themeManager = ThemeManager.getInstance(holder.itemView.context)
 
         holder.nombreText.text = medicamento.nombre
-        holder.horaText.text = medicamento.hora
+
+        if (medicamento.activo && medicamento.proximaAlarma > 0) {
+            val formatoHora = SimpleDateFormat("HH:mm", Locale.getDefault())
+            holder.horaText.text = formatoHora.format(Date(medicamento.proximaAlarma))
+        } else {
+            holder.horaText.text = "--:--"
+        }
+
         holder.frecuenciaText.text = medicamento.frecuenciaTexto
 
         if (medicamento.activo && medicamento.proximaAlarma > 0) {
@@ -173,7 +183,6 @@ class MedicationAdapter(
         }
 
         if (medicamento.notas.isNotEmpty()) {
-            // mostrar todo el texto de las notas sin recortarlo
             holder.notasText.text = medicamento.notas
             holder.notasText.visibility = View.VISIBLE
         } else {
@@ -194,6 +203,23 @@ class MedicationAdapter(
 
         holder.testButton.setOnClickListener { onAction(medicamento, ACTION_TEST_ALARM) }
         holder.cardLayout.setOnClickListener { onAction(medicamento, ACTION_VIEW_DETAILS) }
+
+        // --- INICIO DE LA MODIFICACIÓN ---
+        holder.cardLayout.setOnLongClickListener { view ->
+            val popup = PopupMenu(view.context, view, Gravity.END)
+            popup.menu.add(ACTION_EDIT).title = "Editar"
+            popup.menu.add(ACTION_DELETE).title = "Eliminar"
+            popup.setOnMenuItemClickListener { menuItem ->
+                when (menuItem.title) {
+                    "Editar" -> onAction(medicamento, ACTION_EDIT)
+                    "Eliminar" -> onAction(medicamento, ACTION_DELETE)
+                }
+                true
+            }
+            popup.show()
+            true
+        }
+        // --- FIN DE LA MODIFICACIÓN ---
     }
 
     override fun getItemCount() = medicamentos.size
