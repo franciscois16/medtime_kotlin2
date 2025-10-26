@@ -1,9 +1,16 @@
 package com.franciscois.medtime_kotlin
 
+import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+// import android.app.NotificationManager // No es necesario si usamos Compat
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
@@ -12,6 +19,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationManagerCompat // Usar Compat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
@@ -29,6 +38,7 @@ import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
+    // (Declaraciones no cambian)
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: LinearLayout
     private lateinit var headerTitle: TextView
@@ -49,6 +59,7 @@ class MainActivity : AppCompatActivity() {
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.let {
+                // (Lógica agregar medicamento no cambia)
                 val nombre = it.getStringExtra("nombre") ?: ""
                 val fechaHoraPrimeraToma = it.getLongExtra("fechaHoraPrimeraToma", System.currentTimeMillis())
                 val frecuenciaHoras = it.getIntExtra("frecuenciaHoras", 24)
@@ -65,16 +76,33 @@ class MainActivity : AppCompatActivity() {
                     familiares = familiares,
                     activo = true
                 )
-
                 nuevoMedicamento.proximaAlarma = nuevoMedicamento.calcularProximaAlarma()
                 storage.agregarMedicamento(nuevoMedicamento)
                 alarmHelper.programarAlarma(nuevoMedicamento)
-
                 cargarYActualizarUI()
                 Toast.makeText(this, "'$nombre' guardado correctamente", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
+    private val requestNotificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (!isGranted) {
+                // Si deniega, mostrar diálogo explicando por qué es necesario
+                AlertDialog.Builder(this)
+                    .setTitle("Permiso Denegado")
+                    .setMessage("Sin el permiso de notificaciones, las alarmas no podrán sonar ni mostrarse. Por favor, considere activarlo desde los ajustes de la aplicación.")
+                    .setPositiveButton("Ok", null)
+                    .show()
+            }
+        }
+
+    // Launcher para el permiso "Aparecer Encima"
+    private val requestOverlayPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            // No necesitamos hacer nada con el resultado aquí, solo llevar al usuario
+            // Volveremos a verificar en onResume
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,13 +115,135 @@ class MainActivity : AppCompatActivity() {
         setupClickListeners()
         cargarYActualizarUI()
         manejarIntent(intent)
+
+        // Verificar todos los permisos al iniciar
+        checkRequiredPermissions()
     }
 
     override fun onResume() {
         super.onResume()
         cargarYActualizarUI()
+        // Volver a verificar permisos críticos por si el usuario los cambió
+        checkRequiredPermissions()
     }
 
+    // --- FUNCIÓN CENTRALIZADA PARA VERIFICAR PERMISOS ---
+    private fun checkRequiredPermissions() {
+        checkNotificationPermission()
+        checkDrawOverlayPermission()
+        checkFullScreenIntentPermission() // Esta verificará si las notificaciones están habilitadas primero
+    }
+
+    private fun checkDrawOverlayPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            showPermissionDialog(
+                "Permiso Necesario: Aparecer Encima",
+                "Para mostrar la alarma sobre la pantalla de bloqueo, MedTime necesita este permiso.",
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION
+            ) {
+                // Lanzar la actividad para solicitar el permiso de superposición
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                requestOverlayPermissionLauncher.launch(intent)
+            }
+        }
+    }
+
+    private fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                // Usar diálogo antes de lanzar la petición formal
+                AlertDialog.Builder(this)
+                    .setTitle("Permiso Necesario: Notificaciones")
+                    .setMessage("MedTime necesita enviar notificaciones para recordarte tus medicamentos.")
+                    .setPositiveButton("Solicitar Permiso") { _, _ ->
+                        requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    .setNegativeButton("Ahora no", null)
+                    .show()
+            }
+        }
+    }
+
+    // --- FUNCIÓN MEJORADA ---
+    private fun checkFullScreenIntentPermission() {
+        val notificationManager = NotificationManagerCompat.from(this)
+        // Solo relevante a partir de Android 12 (API 31)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Primero, verificar si las notificaciones están habilitadas en general
+            if (!notificationManager.areNotificationsEnabled()) {
+                // Si no están habilitadas, guiar al usuario a activarlas primero
+                showPermissionDialog(
+                    "Notificaciones Desactivadas",
+                    "Las notificaciones para MedTime están desactivadas. Necesitas activarlas para recibir alarmas.",
+                    Settings.ACTION_APP_NOTIFICATION_SETTINGS // Lleva a los ajustes generales de notificación de la app
+                )
+                return // No continuar si las notificaciones están desactivadas
+            }
+
+            // Ahora, verificar si puede usar FullScreenIntent
+            // NOTA: canUseFullScreenIntent() a veces es engañoso en algunos OEMs.
+            // Es mejor guiar al usuario a los ajustes de la CATEGORÍA si sospechamos problemas.
+
+            // Mostraremos un diálogo informativo que guía al usuario a la categoría CUALQUIER CASO
+            // si detectamos que es un Samsung, ya que ahí suele estar el problema oculto.
+            // O podríamos mostrarlo siempre la primera vez para asegurar.
+            val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val firstCheck = prefs.getBoolean("first_fullscreen_check", true)
+
+            // Simplificado: Siempre mostrar la guía la primera vez o si detectamos problemas (aunque canUseFullScreenIntent no sea fiable)
+            if (firstCheck || !notificationManager.canUseFullScreenIntent()) { // Mostrar si es la primera vez O si el sistema *dice* que no puede
+                showPermissionDialog(
+                    "Ajuste Importante (Samsung)",
+                    "Para asegurar que la alarma aparezca en pantalla completa:\n\n" +
+                            "1. Toca 'Ir a Ajustes'.\n" +
+                            "2. Entra en 'Categorías de notificación'.\n" +
+                            "3. Selecciona 'Alarmas de Medicamentos'.\n" +
+                            "4. **ACTIVA 'Mostrar como ventana emergente'** y asegúrate que la importancia sea 'Urgente'.",
+                    Settings.ACTION_APP_NOTIFICATION_SETTINGS // Lleva a los ajustes generales, el usuario debe navegar
+                )
+                // Marcar que ya hicimos la primera verificación
+                prefs.edit().putBoolean("first_fullscreen_check", false).apply()
+            }
+        }
+    }
+
+    // Función helper para mostrar diálogos de permisos/guía
+    private fun showPermissionDialog(title: String, message: String, settingsAction: String, positiveAction: (() -> Unit)? = null) {
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("Ir a Ajustes") { _, _ ->
+                if (positiveAction != null) {
+                    positiveAction.invoke() // Ejecutar acción específica si se proporcionó (para overlay)
+                } else {
+                    // Acción por defecto: abrir ajustes
+                    val intent = Intent(settingsAction).apply {
+                        // Para ACTION_APP_NOTIFICATION_SETTINGS, necesitamos el extra
+                        if (settingsAction == Settings.ACTION_APP_NOTIFICATION_SETTINGS) {
+                            putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                        } else {
+                            // Para otros, como OVERLAY, usamos data
+                            data = Uri.parse("package:$packageName")
+                        }
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    try {
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(this, "No se pudo abrir la configuración.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("Ahora no", null)
+            .setCancelable(false) // Evitar que se cierre tocando fuera
+            .show()
+    }
+
+    // (El resto del archivo MainActivity.kt no cambia)
+    // ... Código restante ...
     private fun initializeHelpers() {
         storage = MedicationStorage.getInstance(this)
         alarmHelper = AlarmHelper.getInstance(this)
@@ -190,14 +340,12 @@ class MainActivity : AppCompatActivity() {
         cargarYActualizarUI()
     }
 
-    // --- INICIO DE LA MODIFICACIÓN ---
     private fun eliminarMedicamento(medicamento: Medicamento) {
         AlertDialog.Builder(this)
             .setTitle("Confirmar eliminación")
             .setMessage("¿Estás seguro de que quieres eliminar '${medicamento.nombre}'?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton("Eliminar") { _, _ ->
-                // Lógica de borrado real
                 alarmHelper.cancelarAlarma(medicamento.id)
                 storage.eliminarMedicamento(medicamento.id)
                 cargarYActualizarUI()
@@ -206,7 +354,6 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton("Cancelar", null)
             .show()
     }
-    // --- FIN DE LA MODIFICACIÓN ---
 
     private fun editarMedicamento(medicamento: Medicamento) {
         Toast.makeText(this, "Editar ${medicamento.nombre} (próximamente)", Toast.LENGTH_SHORT).show()

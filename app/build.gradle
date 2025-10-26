@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace 'com.franciscois.medtime_kotlin'
+    namespace = "com.franciscois.medtime_kotlin"
     compileSdk 36
 
     defaultConfig {

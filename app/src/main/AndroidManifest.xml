@@ -2,14 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-    <!-- Permiso para ejecutar al iniciar el dispositivo -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
 
 
     <application
@@ -34,11 +38,13 @@
             android:name=".AlarmActivity"
             android:exported="false"
             android:showOnLockScreen="true"
-            android:theme="@style/Theme.AppCompat.NoActionBar" />
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance" />
 
         <activity android:name=".AddEditActivity" />
 
-        <!-- Se registran los receivers para que el sistema los reconozca -->
         <receiver android:name=".receivers.MedicationAlarmReceiver" android:exported="false" />
         <receiver android:name=".receivers.BootReceiver" android:exported="true">
             <intent-filter>
@@ -48,6 +54,11 @@
         </receiver>
         <receiver android:name=".utils.NotificationActionReceiver" android:exported="false" />
 
+
+        <service
+            android:name=".services.AlarmService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"/>
     </application>
 
 </manifest>

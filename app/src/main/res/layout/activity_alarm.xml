@@ -4,94 +4,84 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F4C75"
+    android:background="#1A237E"
     tools:context=".AlarmActivity">
+
 
     <TextView
         android:id="@+id/text_view_current_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="64dp"
+        android:layout_marginTop="80dp"
         android:textColor="@android:color/white"
-        android:textSize="48sp"
+        android:textSize="60sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:text="12:30" />
+        tools:text="12:22" />
+
 
     <TextView
-        android:id="@+id/label_hora_de_tomar"
+        android:id="@+id/text_view_current_date"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="💊 Es hora de tomar tu medicamento"
+        android:layout_marginTop="8dp"
         android:textColor="#B0BEC5"
-        android:textSize="18sp"
+        android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/text_view_current_time" />
+        app:layout_constraintTop_toBottomOf="@id/text_view_current_time"
+        tools:text="vie, octubre 24" />
+
+
+    <Button
+        android:id="@+id/button_posponer"
+        android:layout_width="200dp"
+        android:layout_height="60dp"
+        android:layout_marginBottom="64dp"
+        android:background="@drawable/rounded_button_gray"
+        android:text="Aplazar 5 min"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:textAllCaps="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+
+    <Button
+        android:id="@+id/button_tomado"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_marginBottom="32dp"
+        android:background="@drawable/circle_button_red"
+        android:gravity="center"
+        android:text="❌"
+        android:textColor="@android:color/white"
+        android:textSize="48sp"
+
+        app:layout_constraintBottom_toTopOf="@+id/button_posponer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
 
     <TextView
         android:id="@+id/text_view_med_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
-        android:layout_marginTop="48dp"
         android:layout_marginEnd="32dp"
         android:gravity="center"
         android:textColor="@android:color/white"
-        android:textSize="34sp"
+        android:textSize="32sp"
         android:textStyle="bold"
+
+        app:layout_constraintBottom_toTopOf="@id/button_tomado"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/label_hora_de_tomar"
+        app:layout_constraintTop_toBottomOf="@id/text_view_current_date"
+        app:layout_constraintVertical_bias="0.3"
         tools:text="Paracetamol 500mg" />
-
-    <TextView
-        android:id="@+id/text_view_med_notes"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="32dp"
-        android:gravity="center"
-        android:textColor="#E0E0E0"
-        android:textSize="18sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/text_view_med_name"
-        tools:text="Tomar con agua después de comer." />
-
-    <com.google.android.material.slider.Slider
-        android:id="@+id/slider_tomado"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:layout_marginEnd="32dp"
-        android:layout_marginBottom="64dp"
-        android:valueFrom="0.0"
-        android:valueTo="1.0"
-        android:stepSize="0.1"
-        app:labelBehavior="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:thumbColor="@color/white"
-        app:trackColorActive="#3FA9F5"
-        app:trackColorInactive="#B0BEC5"
-        app:trackHeight="12dp"
-        app:thumbRadius="24dp"
-        app:thumbElevation="8dp"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text=">> Desliza para confirmar >>"
-        android:textColor="#B0BEC5"
-        app:layout_constraintBottom_toBottomOf="@id/slider_tomado"
-        app:layout_constraintEnd_toEndOf="@id/slider_tomado"
-        app:layout_constraintStart_toStartOf="@id/slider_tomado"
-        app:layout_constraintTop_toTopOf="@id/slider_tomado" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
