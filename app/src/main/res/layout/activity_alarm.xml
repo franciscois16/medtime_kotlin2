@@ -1,87 +1,121 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1A237E"
-    tools:context=".AlarmActivity">
-
-
-    <TextView
-        android:id="@+id/text_view_current_time"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="80dp"
-        android:textColor="@android:color/white"
-        android:textSize="60sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:text="12:22" />
-
-
-    <TextView
-        android:id="@+id/text_view_current_date"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textColor="#B0BEC5"
-        android:textSize="20sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/text_view_current_time"
-        tools:text="vie, octubre 24" />
-
-
-    <Button
-        android:id="@+id/button_posponer"
-        android:layout_width="200dp"
-        android:layout_height="60dp"
-        android:layout_marginBottom="64dp"
-        android:background="@drawable/rounded_button_gray"
-        android:text="Aplazar 5 min"
-        android:textColor="@android:color/white"
-        android:textSize="18sp"
-        android:textAllCaps="false"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-
-    <Button
-        android:id="@+id/button_tomado"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_marginBottom="32dp"
-        android:background="@drawable/circle_button_red"
-        android:gravity="center"
-        android:text="❌"
-        android:textColor="@android:color/white"
-        android:textSize="48sp"
-
-        app:layout_constraintBottom_toTopOf="@+id/button_posponer"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
+    android:background="#1A1A2E"
+    android:padding="24dp">
 
     <TextView
         android:id="@+id/text_view_med_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:layout_marginEnd="32dp"
-        android:gravity="center"
-        android:textColor="@android:color/white"
-        android:textSize="32sp"
+        android:textAlignment="center"
+        android:textColor="#FFFFFF"
+        android:textSize="28sp"
         android:textStyle="bold"
-
-        app:layout_constraintBottom_toTopOf="@id/button_tomado"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/text_view_current_date"
-        app:layout_constraintVertical_bias="0.3"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/text_view_med_note"
+        app:layout_constraintVertical_chainStyle="packed"
         tools:text="Paracetamol 500mg" />
+
+    <TextView
+        android:id="@+id/text_view_med_note"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textAlignment="center"
+        android:textColor="#99FFFFFF"
+        android:textSize="16sp"
+        android:visibility="gone"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/text_view_med_name"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/text_view_current_time"
+        tools:text="Tomar con alimentos"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/text_view_current_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:textColor="#FFFFFF"
+        android:textSize="72sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@+id/text_view_med_note"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/text_view_current_date"
+        tools:text="08:30" />
+
+    <TextView
+        android:id="@+id/text_view_current_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#99FFFFFF"
+        android:textSize="18sp"
+        app:layout_constraintTop_toBottomOf="@+id/text_view_current_time"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/slider_taken_container"
+        tools:text="Jueves, 26 de Octubre" />
+
+    <!-- EL SLIDER - Con ConstraintLayout en lugar de FrameLayout -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/slider_taken_container"
+        android:layout_width="0dp"
+        android:layout_height="70dp"
+        android:layout_marginTop="48dp"
+        android:layout_marginBottom="16dp"
+        android:background="#4A4A5A"
+        app:layout_constraintTop_toBottomOf="@+id/text_view_current_date"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/button_posponer">
+
+        <TextView
+            android:id="@+id/slider_taken_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="→ Desliza para confirmar →"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <ImageButton
+            android:id="@+id/slider_thumb_button"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:background="#FF4444"
+            android:contentDescription="Deslizar para tomar"
+            android:scaleType="center"
+            android:src="@android:drawable/ic_input_add"
+            android:tint="#FFFFFF"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <Button
+        android:id="@+id/button_posponer"
+        android:layout_width="0dp"
+        android:layout_height="60dp"
+        android:text="⏰ Posponer 5 minutos"
+        android:textSize="16sp"
+        android:backgroundTint="#4A4A5A"
+        app:layout_constraintTop_toBottomOf="@+id/slider_taken_container"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

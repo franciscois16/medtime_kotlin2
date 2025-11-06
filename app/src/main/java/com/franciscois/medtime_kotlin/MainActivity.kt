@@ -194,19 +194,19 @@ class MainActivity : AppCompatActivity() {
             val firstCheck = prefs.getBoolean("first_fullscreen_check", true)
 
             // Simplificado: Siempre mostrar la guía la primera vez o si detectamos problemas (aunque canUseFullScreenIntent no sea fiable)
-            if (firstCheck || !notificationManager.canUseFullScreenIntent()) { // Mostrar si es la primera vez O si el sistema *dice* que no puede
-                showPermissionDialog(
-                    "Ajuste Importante (Samsung)",
-                    "Para asegurar que la alarma aparezca en pantalla completa:\n\n" +
-                            "1. Toca 'Ir a Ajustes'.\n" +
-                            "2. Entra en 'Categorías de notificación'.\n" +
-                            "3. Selecciona 'Alarmas de Medicamentos'.\n" +
-                            "4. **ACTIVA 'Mostrar como ventana emergente'** y asegúrate que la importancia sea 'Urgente'.",
-                    Settings.ACTION_APP_NOTIFICATION_SETTINGS // Lleva a los ajustes generales, el usuario debe navegar
-                )
-                // Marcar que ya hicimos la primera verificación
-                prefs.edit().putBoolean("first_fullscreen_check", false).apply()
-            }
+//            if (firstCheck || !notificationManager.canUseFullScreenIntent()) { // Mostrar si es la primera vez O si el sistema *dice* que no puede
+//                showPermissionDialog(
+//                    "Ajuste Importante (Samsung)",
+//                    "Para asegurar que la alarma aparezca en pantalla completa:\n\n" +
+//                            "1. Toca 'Ir a Ajustes'.\n" +
+//                            "2. Entra en 'Categorías de notificación'.\n" +
+//                            "3. Selecciona 'Alarmas de Medicamentos'.\n" +
+//                            "4. **ACTIVA 'Mostrar como ventana emergente'** y asegúrate que la importancia sea 'Urgente'.",
+//                    Settings.ACTION_APP_NOTIFICATION_SETTINGS // Lleva a los ajustes generales, el usuario debe navegar
+//                )
+//                // Marcar que ya hicimos la primera verificación
+//                prefs.edit().putBoolean("first_fullscreen_check", false).apply()
+//            }
         }
     }
 

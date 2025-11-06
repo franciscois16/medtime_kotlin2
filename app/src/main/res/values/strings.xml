@@ -1,8 +1,5 @@
 <resources>
     <string name="app_name">MedTime</string>
-    <string name="title_activity_add_edit">AddEditActivity</string>
-    <string name="channel_name_alarms">Alarmas de Medicamentos</string>
-    <string name="channel_description_alarms">Notificaciones para recordar tomar medicamentos</string>
     <string name="desc_medication_icon">Ícono de medicamento</string>
     <string name="desc_slide_to_take_button">Botón deslizable para marcar como tomado</string>
     <string name="slide_to_take">Desliza para Marcar como Tomado</string>

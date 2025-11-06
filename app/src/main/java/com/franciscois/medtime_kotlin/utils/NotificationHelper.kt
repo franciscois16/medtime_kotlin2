@@ -56,7 +56,12 @@ class NotificationHelper(private val context: Context) {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val reqCodeContent = medicamentoId.hashCode() + 4
-        val contentPendingIntent = PendingIntent.getActivity(context, reqCodeContent, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+        val contentPendingIntent = PendingIntent.getActivity(context, reqCodeContent, contentIntent, pendingIntentFlags)
 
         // Acciones
         val intentTomado = Intent(context, NotificationActionReceiver::class.java).apply {
@@ -65,7 +70,7 @@ class NotificationHelper(private val context: Context) {
             putExtra("medicamento_nombre", nombreMedicamento)
         }
         val reqCodeTomado = medicamentoId.hashCode() + 2
-        val pendingIntentTomado = PendingIntent.getBroadcast(context, reqCodeTomado, intentTomado, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntentTomado = PendingIntent.getBroadcast(context, reqCodeTomado, intentTomado, pendingIntentFlags)
 
         val intentPosponer = Intent(context, NotificationActionReceiver::class.java).apply {
             action = "POSPONER"
@@ -73,9 +78,9 @@ class NotificationHelper(private val context: Context) {
             putExtra("medicamento_nombre", nombreMedicamento)
         }
         val reqCodePosponer = medicamentoId.hashCode() + 3
-        val pendingIntentPosponer = PendingIntent.getBroadcast(context, reqCodePosponer, intentPosponer, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntentPosponer = PendingIntent.getBroadcast(context, reqCodePosponer, intentPosponer, pendingIntentFlags)
 
-        // Construir notificación
+        // Construir notificación SILENCIOSA
         val titulo = if (esPrueba) "🧪 PRUEBA: $nombreMedicamento" else "💊 Hora de tomar: $nombreMedicamento"
         val mensaje = if (notas.isNotEmpty()) "📝 $notas" else "Es hora de tu medicamento"
         val iconTomadoStandard = android.R.drawable.checkbox_on_background
@@ -88,34 +93,34 @@ class NotificationHelper(private val context: Context) {
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(contentPendingIntent)
-            // NO .setFullScreenIntent()
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Posponer", pendingIntentPosponer)
             .addAction(iconTomadoStandard, "✅ Tomado", pendingIntentTomado)
             .setAutoCancel(true)
+            .setSound(null) // ← SILENCIAR LA NOTIFICACIÓN
+            .setOnlyAlertOnce(true) // ← NO repetir sonido si ya se mostró
             .build()
 
-        // Mostrar notificación (con chequeo de permiso)
+        // Mostrar notificación
         val notificationId = 1001 + medicamentoId.hashCode()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
                 notificationManager.notify(notificationId, notification)
-                println("Notificación mostrada (Android 13+)")
+                println("📢 Notificación silenciosa mostrada")
             } else {
                 println("Error: Permiso POST_NOTIFICATIONS denegado.")
             }
         } else {
             notificationManager.notify(notificationId, notification)
-            println("Notificación mostrada (Pre-Android 13)")
+            println("📢 Notificación silenciosa mostrada")
         }
 
         // Reprogramar (si no es prueba)
-        // El sonido lo maneja AlarmActivity
         if (!esPrueba) {
             reprogramarSiguiente(context, medicamentoId)
-        } else {
-            println("Reproduciendo sonido de PRUEBA desde NotificationHelper")
-            reproducirSonidoAlarma(duracionSonido, true)
         }
+
+        // ❌ NO reproducir sonido aquí - AlarmActivity ya lo hace
+        // reproducirSonidoAlarma(duracionSonido, false) // ← ELIMINAR ESTA LÍNEA
     }
 
     // Reprogramación
@@ -219,31 +224,25 @@ class NotificationHelper(private val context: Context) {
     // Crear canal
     private fun crearCanalesNotificacion() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val sonidoUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM)
-            val audioAttributes = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build()
-
+            // NO usar sonido en el canal, porque el sonido lo maneja AlarmActivity
             val canal = NotificationChannel(
                 CHANNEL_ID_ALARMS,
                 CHANNEL_NAME_ALARMS,
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_HIGH // HIGH pero sin sonido
             ).apply {
-                description = "Alarmas sonoras para recordar tomar medicamentos"
+                description = "Alarmas para recordar tomar medicamentos (sonido manejado por la app)"
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 500, 200, 500)
-                setSound(sonidoUri, audioAttributes)
+                setSound(null, null) // ← SIN SONIDO en el canal
                 setBypassDnd(true)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            if (manager.getNotificationChannel(CHANNEL_ID_ALARMS) == null) {
-                manager.createNotificationChannel(canal)
-                println("✅ Canal de notificación '${CHANNEL_NAME_ALARMS}' creado.")
-            } else {
-                println("ⓘ Canal de notificación '${CHANNEL_NAME_ALARMS}' ya existe.")
-            }
+
+            // Si el canal ya existe, eliminarlo y recrearlo
+            manager.deleteNotificationChannel(CHANNEL_ID_ALARMS)
+            manager.createNotificationChannel(canal)
+            println("✅ Canal de notificación '${CHANNEL_NAME_ALARMS}' creado/actualizado (silencioso).")
         }
     }
 
