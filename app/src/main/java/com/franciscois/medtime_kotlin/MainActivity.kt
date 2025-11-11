@@ -3,7 +3,6 @@ package com.franciscois.medtime_kotlin
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
-// import android.app.NotificationManager // No es necesario si usamos Compat
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -11,15 +10,18 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.text.InputType
+import android.util.Log // <-- ¡IMPORTANTE! Importar Log
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationManagerCompat // Usar Compat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -33,12 +35,24 @@ import com.franciscois.medtime_kotlin.utils.AlarmHelper
 import com.franciscois.medtime_kotlin.utils.NotificationHelper
 import com.franciscois.medtime_kotlin.utils.ThemeManager
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.firestore.Query
+import com.google.firebase.ktx.Firebase
 import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
-    // (Declaraciones no cambian)
+    private lateinit var auth: FirebaseAuth
+    private lateinit var db: FirebaseFirestore
+    private var alertasListener: ListenerRegistration? = null
+
+    // Etiqueta para Logcat
+    private val TAG = "ListenerAlertas"
+
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: LinearLayout
     private lateinit var headerTitle: TextView
@@ -59,7 +73,6 @@ class MainActivity : AppCompatActivity() {
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.let {
-                // (Lógica agregar medicamento no cambia)
                 val nombre = it.getStringExtra("nombre") ?: ""
                 val fechaHoraPrimeraToma = it.getLongExtra("fechaHoraPrimeraToma", System.currentTimeMillis())
                 val frecuenciaHoras = it.getIntExtra("frecuenciaHoras", 24)
@@ -88,25 +101,24 @@ class MainActivity : AppCompatActivity() {
     private val requestNotificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
             if (!isGranted) {
-                // Si deniega, mostrar diálogo explicando por qué es necesario
                 AlertDialog.Builder(this)
                     .setTitle("Permiso Denegado")
-                    .setMessage("Sin el permiso de notificaciones, las alarmas no podrán sonar ni mostrarse. Por favor, considere activarlo desde los ajustes de la aplicación.")
+                    .setMessage("Sin el permiso de notificaciones, las alarmas no podrán sonar ni mostrarse.")
                     .setPositiveButton("Ok", null)
                     .show()
             }
         }
-
-    // Launcher para el permiso "Aparecer Encima"
     private val requestOverlayPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            // No necesitamos hacer nada con el resultado aquí, solo llevar al usuario
-            // Volveremos a verificar en onResume
-        }
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        auth = FirebaseAuth.getInstance()
+        db = Firebase.firestore
+
+        signInAnonymously() // Esto obtiene el UID
 
         initializeHelpers()
         findViews()
@@ -116,22 +128,196 @@ class MainActivity : AppCompatActivity() {
         cargarYActualizarUI()
         manejarIntent(intent)
 
-        // Verificar todos los permisos al iniciar
         checkRequiredPermissions()
     }
 
     override fun onResume() {
         super.onResume()
         cargarYActualizarUI()
-        // Volver a verificar permisos críticos por si el usuario los cambió
         checkRequiredPermissions()
+        iniciarListenerAlertas() // Iniciar el listener
     }
 
-    // --- FUNCIÓN CENTRALIZADA PARA VERIFICAR PERMISOS ---
+    override fun onPause() {
+        super.onPause()
+        detenerListenerAlertas() // Detener el listener
+    }
+
+    private fun signInAnonymously() {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            Log.i(TAG, "No hay usuario, iniciando sesión anónima...")
+            auth.signInAnonymously()
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        val user = auth.currentUser
+                        val uid = user?.uid ?: "error_uid"
+                        Log.i(TAG, "✅ Inicio de sesión anónimo exitoso. UID: $uid")
+                        val prefs = getSharedPreferences("MedTimePrefs", Context.MODE_PRIVATE)
+                        with(prefs.edit()) {
+                            putString("USER_UID", uid)
+                            apply()
+                        }
+                        checkFirstRunAndAskForName()
+                        iniciarListenerAlertas()
+                    } else {
+                        Log.w(TAG, "❌ Falló el inicio de sesión anónimo.", task.exception)
+                        Toast.makeText(baseContext, "Error de autenticación.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+        } else {
+            val uid = currentUser.uid
+            Log.i(TAG, "✅ Usuario ya autenticado. UID: $uid")
+            val prefs = getSharedPreferences("MedTimePrefs", Context.MODE_PRIVATE)
+            with(prefs.edit()) {
+                putString("USER_UID", uid)
+                apply()
+            }
+            checkFirstRunAndAskForName()
+            iniciarListenerAlertas()
+        }
+    }
+
+    private fun iniciarListenerAlertas() {
+        detenerListenerAlertas()
+
+        val prefs = getSharedPreferences("MedTimePrefs", Context.MODE_PRIVATE)
+        val myUid = prefs.getString("USER_UID", null)
+        if (myUid == null) {
+            Log.w(TAG, "Esperando UID... El listener no puede iniciar.")
+            return
+        }
+
+        Log.i(TAG, "Configurando listener para cuidador UID: $myUid")
+
+        db.collection("vinculos")
+            .whereEqualTo("cuidadorUid", myUid)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.isEmpty) {
+                    Log.i(TAG, "Este usuario no es cuidador de nadie.")
+                    return@addOnSuccessListener
+                }
+
+                val pacientesIds = snapshot.documents.mapNotNull { it.getString("pacienteUid") }
+                if (pacientesIds.isEmpty()) {
+                    Log.i(TAG, "No se encontraron IDs de pacientes en los vínculos.")
+                    return@addOnSuccessListener
+                }
+
+                Log.i(TAG, "Siguiendo a pacientes: $pacientesIds")
+
+                val unaHoraAtras = System.currentTimeMillis() - 3600 * 1000
+
+                alertasListener = db.collection("alertas")
+                    .whereIn("pacienteUid", pacientesIds)
+                    .whereEqualTo("vistaPorCuidador", false)
+                    .whereGreaterThan("createdAt", unaHoraAtras)
+                    .orderBy("createdAt", Query.Direction.DESCENDING)
+                    .addSnapshotListener { snapshots, e ->
+                        if (e != null) {
+                            Log.e(TAG, "Error en el listener de alertas:", e)
+                            return@addSnapshotListener
+                        }
+
+                        if (snapshots == null) return@addSnapshotListener
+
+                        Log.i(TAG, "¡Nuevos eventos recibidos! (${snapshots.documentChanges.size} cambios)")
+                        for (doc in snapshots.documentChanges) {
+                            if (doc.type == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
+                                val alerta = doc.document
+                                val pacienteName = alerta.getString("pacienteName") ?: "Alguien"
+                                val medName = alerta.getString("medicamentoName") ?: "un medicamento"
+                                val tipo = alerta.getString("tipo") ?: "OMITIDO"
+
+                                val titulo = "Alerta de $pacienteName"
+                                val mensaje = if (tipo == "TOMADO") {
+                                    "✅ $pacienteName ha marcado '$medName' como tomado."
+                                } else {
+                                    "⚠️ $pacienteName NO ha marcado '$medName'."
+                                }
+
+                                // --- 1. MENSAJE EN LOGCAT ---
+                                Log.i(TAG, "Mostrando notificación local: $mensaje")
+                                notificationHelper.mostrarNotificacionLocal(titulo, mensaje, alerta.id.hashCode())
+
+                                // --- 2. CONFIRMACIÓN A FIREBASE ---
+                                db.collection("alertas").document(alerta.id)
+                                    .update("vistaPorCuidador", true)
+                                    .addOnSuccessListener { Log.i(TAG, "Alerta ${alerta.id} marcada como vista.") }
+                                    .addOnFailureListener { Log.w(TAG, "Error al marcar alerta ${alerta.id} como vista.") }
+                            }
+                        }
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Error buscando vínculos:", e)
+            }
+    }
+
+    private fun detenerListenerAlertas() {
+        alertasListener?.remove()
+        alertasListener = null
+        Log.i(TAG, "Listener detenido.")
+    }
+
+
+    private fun checkFirstRunAndAskForName() {
+        val prefs = getSharedPreferences("MedTimePrefs", Context.MODE_PRIVATE)
+        val hasUserSetName = prefs.getBoolean("HAS_USER_SET_NAME", false)
+        val uid = prefs.getString("USER_UID", null)
+        if (!hasUserSetName && uid != null) {
+            val input = EditText(this).apply {
+                inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
+                hint = "Ej: Francisco"
+                setPadding(50, 50, 50, 50)
+            }
+            val dialog = AlertDialog.Builder(this)
+                .setTitle("¡Bienvenido a MedTime!")
+                .setMessage("Ingresa tu nombre para personalizar las notificaciones (puedes cambiarlo después).")
+                .setView(input)
+                .setPositiveButton("Guardar") { _, _ ->
+                    val nombre = input.text.toString().trim().ifEmpty { "Usuario" }
+                    val userProfile = hashMapOf("name" to nombre, "uid" to uid, "createdAt" to System.currentTimeMillis())
+                    db.collection("users").document(uid).set(userProfile)
+                        .addOnSuccessListener {
+                            Log.i(TAG, "✅ Perfil de usuario '$nombre' guardado en Firestore.")
+                            with(prefs.edit()) {
+                                putString("USER_NAME", nombre)
+                                putBoolean("HAS_USER_SET_NAME", true)
+                                apply()
+                            }
+                            Toast.makeText(this, "¡Hola, $nombre!", Toast.LENGTH_SHORT).show()
+                            actualizarUI()
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e(TAG, "❌ Error al guardar perfil en Firestore:", e)
+                            Toast.makeText(this, "Error al guardar perfil. Inténtalo de nuevo.", Toast.LENGTH_SHORT).show()
+                        }
+                }
+                .setNegativeButton("Omitir") { _, _ ->
+                    val nombre = "Usuario"
+                    val userProfile = hashMapOf("name" to nombre, "uid" to uid, "createdAt" to System.currentTimeMillis())
+                    db.collection("users").document(uid).set(userProfile)
+                        .addOnCompleteListener {
+                            with(prefs.edit()) {
+                                putString("USER_NAME", nombre)
+                                putBoolean("HAS_USER_SET_NAME", true)
+                                apply()
+                            }
+                            actualizarUI()
+                        }
+                }
+                .setCancelable(false)
+                .create()
+            dialog.show()
+        }
+    }
+
     private fun checkRequiredPermissions() {
         checkNotificationPermission()
         checkDrawOverlayPermission()
-        checkFullScreenIntentPermission() // Esta verificará si las notificaciones están habilitadas primero
+        checkFullScreenIntentPermission()
     }
 
     private fun checkDrawOverlayPermission() {
@@ -141,7 +327,6 @@ class MainActivity : AppCompatActivity() {
                 "Para mostrar la alarma sobre la pantalla de bloqueo, MedTime necesita este permiso.",
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION
             ) {
-                // Lanzar la actividad para solicitar el permiso de superposición
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     Uri.parse("package:$packageName")
@@ -154,7 +339,6 @@ class MainActivity : AppCompatActivity() {
     private fun checkNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                // Usar diálogo antes de lanzar la petición formal
                 AlertDialog.Builder(this)
                     .setTitle("Permiso Necesario: Notificaciones")
                     .setMessage("MedTime necesita enviar notificaciones para recordarte tus medicamentos.")
@@ -167,65 +351,48 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- FUNCIÓN MEJORADA ---
     private fun checkFullScreenIntentPermission() {
         val notificationManager = NotificationManagerCompat.from(this)
-        // Solo relevante a partir de Android 12 (API 31)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Primero, verificar si las notificaciones están habilitadas en general
             if (!notificationManager.areNotificationsEnabled()) {
-                // Si no están habilitadas, guiar al usuario a activarlas primero
                 showPermissionDialog(
                     "Notificaciones Desactivadas",
                     "Las notificaciones para MedTime están desactivadas. Necesitas activarlas para recibir alarmas.",
-                    Settings.ACTION_APP_NOTIFICATION_SETTINGS // Lleva a los ajustes generales de notificación de la app
+                    Settings.ACTION_APP_NOTIFICATION_SETTINGS
                 )
-                return // No continuar si las notificaciones están desactivadas
+                return
             }
 
-            // Ahora, verificar si puede usar FullScreenIntent
-            // NOTA: canUseFullScreenIntent() a veces es engañoso en algunos OEMs.
-            // Es mejor guiar al usuario a los ajustes de la CATEGORÍA si sospechamos problemas.
-
-            // Mostraremos un diálogo informativo que guía al usuario a la categoría CUALQUIER CASO
-            // si detectamos que es un Samsung, ya que ahí suele estar el problema oculto.
-            // O podríamos mostrarlo siempre la primera vez para asegurar.
-            val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val prefs = getSharedPreferences("MedTimePrefs", Context.MODE_PRIVATE)
             val firstCheck = prefs.getBoolean("first_fullscreen_check", true)
 
-            // Simplificado: Siempre mostrar la guía la primera vez o si detectamos problemas (aunque canUseFullScreenIntent no sea fiable)
-//            if (firstCheck || !notificationManager.canUseFullScreenIntent()) { // Mostrar si es la primera vez O si el sistema *dice* que no puede
-//                showPermissionDialog(
-//                    "Ajuste Importante (Samsung)",
-//                    "Para asegurar que la alarma aparezca en pantalla completa:\n\n" +
-//                            "1. Toca 'Ir a Ajustes'.\n" +
-//                            "2. Entra en 'Categorías de notificación'.\n" +
-//                            "3. Selecciona 'Alarmas de Medicamentos'.\n" +
-//                            "4. **ACTIVA 'Mostrar como ventana emergente'** y asegúrate que la importancia sea 'Urgente'.",
-//                    Settings.ACTION_APP_NOTIFICATION_SETTINGS // Lleva a los ajustes generales, el usuario debe navegar
-//                )
-//                // Marcar que ya hicimos la primera verificación
-//                prefs.edit().putBoolean("first_fullscreen_check", false).apply()
-//            }
+            if (firstCheck || !notificationManager.canUseFullScreenIntent()) {
+                showPermissionDialog(
+                    "Ajuste Importante (Samsung)",
+                    "Para asegurar que la alarma aparezca en pantalla completa:\n\n" +
+                            "1. Toca 'Ir a Ajustes'.\n" +
+                            "2. Entra en 'Categorías de notificación'.\n" +
+                            "3. Selecciona 'Alarmas de Medicamentos'.\n" +
+                            "4. **ACTIVA 'Mostrar como ventana emergente'** y asegúrate que la importancia sea 'Urgente'.",
+                    Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                )
+                prefs.edit().putBoolean("first_fullscreen_check", false).apply()
+            }
         }
     }
 
-    // Función helper para mostrar diálogos de permisos/guía
     private fun showPermissionDialog(title: String, message: String, settingsAction: String, positiveAction: (() -> Unit)? = null) {
         AlertDialog.Builder(this)
             .setTitle(title)
             .setMessage(message)
             .setPositiveButton("Ir a Ajustes") { _, _ ->
                 if (positiveAction != null) {
-                    positiveAction.invoke() // Ejecutar acción específica si se proporcionó (para overlay)
+                    positiveAction.invoke()
                 } else {
-                    // Acción por defecto: abrir ajustes
                     val intent = Intent(settingsAction).apply {
-                        // Para ACTION_APP_NOTIFICATION_SETTINGS, necesitamos el extra
                         if (settingsAction == Settings.ACTION_APP_NOTIFICATION_SETTINGS) {
                             putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
                         } else {
-                            // Para otros, como OVERLAY, usamos data
                             data = Uri.parse("package:$packageName")
                         }
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -238,12 +405,10 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Ahora no", null)
-            .setCancelable(false) // Evitar que se cierre tocando fuera
+            .setCancelable(false)
             .show()
     }
 
-    // (El resto del archivo MainActivity.kt no cambia)
-    // ... Código restante ...
     private fun initializeHelpers() {
         storage = MedicationStorage.getInstance(this)
         alarmHelper = AlarmHelper.getInstance(this)
@@ -314,7 +479,9 @@ class MainActivity : AppCompatActivity() {
     private fun actualizarUI() {
         val totalMedicamentos = medicamentos.size
         val medicamentosActivos = medicamentos.count { it.activo }
-        headerTitle.text = "MedTime"
+        val prefs = getSharedPreferences("MedTimePrefs", Context.MODE_PRIVATE)
+        val userName = prefs.getString("USER_NAME", null)
+        headerTitle.text = if (userName != null && userName != "Usuario") userName else "MedTime"
         headerSubtitle.text = when {
             totalMedicamentos == 0 -> "No tienes recordatorios"
             else -> "$medicamentosActivos de $totalMedicamentos activos"
@@ -387,16 +554,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun mostrarMenuOpciones() {
+        val prefs = getSharedPreferences("MedTimePrefs", Context.MODE_PRIVATE)
+        val myUid = prefs.getString("USER_UID", null)
+
         val opciones = arrayOf(
+            "Mi Código para Compartir",
+            "Añadir Paciente (Soy Cuidador)",
             "Cambiar tema",
             if (mostrarSoloActivos) "Mostrar todos" else "Mostrar solo activos"
         )
         AlertDialog.Builder(this)
             .setTitle("Opciones")
             .setItems(opciones) { dialog, which ->
-                when (which) {
-                    0 -> Toast.makeText(this, "Cambiar tema (próximamente)", Toast.LENGTH_SHORT).show()
-                    1 -> {
+                when(which) {
+                    0 -> mostrarMiCodigo(myUid)
+                    1 -> anadirPaciente()
+                    2 -> Toast.makeText(this, "Cambiar tema (próximamente)", Toast.LENGTH_SHORT).show()
+                    3 -> {
                         mostrarSoloActivos = !mostrarSoloActivos
                         cargarYActualizarUI()
                     }
@@ -405,6 +579,78 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("Cancelar", null)
             .show()
+    }
+
+    private fun mostrarMiCodigo(myUid: String?) {
+        if (myUid == null) {
+            Toast.makeText(this, "Error: No se pudo obtener tu ID. Reinicia la app.", Toast.LENGTH_LONG).show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Tu Código para Compartir")
+            .setMessage("Comparte este código con tu cuidador para que pueda recibir tus alertas:\n\n$myUid")
+            .setPositiveButton("Copiar") { _, _ ->
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("UserID", myUid)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this, "¡Código copiado!", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cerrar", null)
+            .show()
+    }
+
+    private fun anadirPaciente() {
+        val prefs = getSharedPreferences("MedTimePrefs", Context.MODE_PRIVATE)
+        val myUid = prefs.getString("USER_UID", null)
+
+        if (myUid == null) {
+            Toast.makeText(this, "Error: No se pudo obtener tu ID. Reinicia la app.", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val input = EditText(this).apply {
+            hint = "Pega el código del paciente aquí"
+            setPadding(50, 50, 50, 50)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Añadir Paciente")
+            .setMessage("Pide al paciente su 'Código para Compartir' y pégalo aquí.")
+            .setView(input)
+            .setPositiveButton("Añadir") { _, _ ->
+                val pacienteUid = input.text.toString().trim()
+                if (pacienteUid.isNotEmpty() && pacienteUid != myUid) {
+                    vincularCuidadorAPaciente(myUid, pacienteUid)
+                } else if (pacienteUid == myUid) {
+                    Toast.makeText(this, "No puedes añadirte a ti mismo.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Código no válido.", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun vincularCuidadorAPaciente(cuidadorUid: String, pacienteUid: String) {
+        val vinculoId = "${pacienteUid}_$cuidadorUid"
+        val vinculo = hashMapOf(
+            "pacienteUid" to pacienteUid,
+            "cuidadorUid" to cuidadorUid,
+            "estado" to "activo",
+            "createdAt" to System.currentTimeMillis()
+        )
+
+        db.collection("vinculos").document(vinculoId)
+            .set(vinculo)
+            .addOnSuccessListener {
+                Log.i(TAG, "✅ Vínculo creado: Cuidador $cuidadorUid sigue a Paciente $pacienteUid")
+                Toast.makeText(this, "¡Paciente añadido exitosamente!", Toast.LENGTH_SHORT).show()
+                iniciarListenerAlertas() // Reiniciar el listener para incluir al nuevo paciente
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "❌ Error al crear vínculo:", e)
+                Toast.makeText(this, "Error al añadir paciente.", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun manejarIntent(intent: Intent?) {

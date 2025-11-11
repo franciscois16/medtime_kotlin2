@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
@@ -34,13 +35,43 @@ android {
 
 dependencies {
 
+    // --- LIBRERÍAS DE ANDROIDX (TUYAS) ---
     implementation libs.androidx.core.ktx
     implementation libs.androidx.appcompat
     implementation libs.material
     implementation libs.androidx.activity
     implementation libs.androidx.constraintlayout
+    implementation libs.androidx.credentials
+    implementation libs.androidx.credentials.play.services.auth
+    implementation libs.googleid
+
+    // --- LIBRERÍAS MANUALES (NUESTRAS) ---
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
+
+    // --- LIBRERÍAS DE FIREBASE (FORMA NUEVA Y CORRECTA) ---
+
+    // 1. Importa el catálogo de versiones (BOM)
+    implementation platform('com.google.firebase:firebase-bom:33.1.1')
+
+    // 2. Esta es la de Autenticación (¡ya incluye ktx!)
+    //    Esta línea 'libs.firebase.auth' que ya tenías está PERFECTA.
+    implementation libs.firebase.auth
+
+    // 3. Esta es la de Base de Datos (¡sin -ktx al final!)
+    implementation 'com.google.firebase:firebase-firestore' // <-- SIN ktx
+
+    implementation 'com.google.firebase:firebase-messaging'
+
+
+    // --- LIBRERÍAS DE TEST (TUYAS) ---
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit
     androidTestImplementation libs.androidx.espresso.core
-    implementation 'com.google.code.gson:gson:2.10.1'
+
+    // --- LÍNEAS QUE ELIMINAMOS PORQUE YA NO SE USAN ---
+    // implementation 'com.google.firebase:firebase-ktx' // <-- ELIMINADA
+    // implementation 'com.google.firebase:firebase-auth-ktx' // <-- ELIMINADA
+    // implementation 'com.google.firebase:firebase-firestore-ktx' // <-- ELIMINADA (reemplazada arriba)
 }

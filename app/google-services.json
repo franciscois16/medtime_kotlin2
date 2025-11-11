@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "65917978236",
+    "project_id": "medtime-proyecto",
+    "storage_bucket": "medtime-proyecto.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:65917978236:android:c3595d7637be97e0686bf9",
+        "android_client_info": {
+          "package_name": "com.franciscois.medtime_kotlin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByIuk44Khej3kfb5TOGifT-JJMEg0J9v0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

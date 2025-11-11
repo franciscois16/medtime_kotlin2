@@ -19,6 +19,7 @@ import com.franciscois.medtime_kotlin.AlarmActivity // Necesario para PendingInt
 import com.franciscois.medtime_kotlin.MainActivity
 import com.franciscois.medtime_kotlin.R // Asegúrate de importar R
 import com.franciscois.medtime_kotlin.storage.MedicationStorage
+import android.media.RingtoneManager
 // import com.franciscois.medtime_kotlin.receivers.BootReceiver // Si lo tienes
 
 class NotificationHelper(private val context: Context) {
@@ -254,6 +255,44 @@ class NotificationHelper(private val context: Context) {
             println("ⓘ Notificación cancelada (ID: $notificationId) para $medicamentoId")
         } catch (e: Exception) {
             println("❌ Error al cancelar notificación para $medicamentoId: ${e.message}")
+        }
+    }
+
+    // --- FUNCIÓN NUEVA ---
+    // Muestra una notificación simple (para el cuidador)
+    fun mostrarNotificacionLocal(titulo: String, mensaje: String, notificacionId: Int) {
+
+        // Intent para abrir la app al tocar la notificación
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+        val pendingIntent = PendingIntent.getActivity(context, notificacionId, intent, pendingIntentFlags) // Usar notificacionId como requestCode
+
+        // Usar el canal de alarmas que ya tenemos
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID_ALARMS)
+            .setSmallIcon(R.mipmap.ic_launcher) // Asegúrate que R.mipmap.ic_launcher exista
+            .setContentTitle(titulo)
+            .setContentText(mensaje)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(mensaje)) // Para texto largo
+            .setPriority(NotificationCompat.PRIORITY_HIGH) // Prioridad alta
+            .setCategory(NotificationCompat.CATEGORY_EVENT) // Es un evento
+            .setContentIntent(pendingIntent) // Abrir app al tocar
+            .setAutoCancel(true) // Se cierra al tocar
+            .setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)) // Sonido de notificación estándar
+            .build()
+
+        // Mostrar notificación (con chequeo de permiso)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                notificationManager.notify(notificacionId, notification)
+            }
+        } else {
+            notificationManager.notify(notificacionId, notification)
         }
     }
 }
